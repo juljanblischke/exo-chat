@@ -5,15 +5,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Loader2, Users, Settings } from "lucide-react";
 import { useChatStore } from "@/stores/chat-store";
 import { useAuth } from "@/hooks/use-auth";
+import { useReadReceipts } from "@/hooks/use-read-receipts";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { MessageInput } from "@/components/chat/message-input";
 import { DateSeparator } from "@/components/chat/date-separator";
 import { TypingIndicator } from "@/components/chat/typing-indicator";
 import { GroupSettingsDialog } from "@/components/chat/group-settings-dialog";
+import { OnlineStatusIndicator } from "@/components/chat/online-status";
 import { CallButton } from "@/components/call/call-button";
 import { isSameDay } from "@/lib/format";
 import { ConversationType } from "@/types";
-import type { Conversation } from "@/types";
+import type { Conversation, Message } from "@/types";
+import type { ReadStatus } from "@/components/chat/read-receipt-icon";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -32,6 +35,42 @@ function getConversationDisplayName(
     (p) => p.userId !== currentUserId
   );
   return other?.user?.displayName ?? "Unknown User";
+}
+
+function getOtherParticipantKeycloakId(
+  conversation: Conversation,
+  currentUserId?: string
+): string | undefined {
+  if (conversation.type === ConversationType.Group) return undefined;
+  const other = conversation.participants.find(
+    (p) => p.userId !== currentUserId
+  );
+  return other?.user?.keycloakId;
+}
+
+function getReadStatus(
+  message: Message,
+  conversation: Conversation | undefined,
+  currentUserId: string | undefined
+): { status: ReadStatus; readByCount: number } {
+  if (!conversation || !currentUserId || message.senderId !== currentUserId) {
+    return { status: "sent", readByCount: 0 };
+  }
+
+  const otherParticipants = conversation.participants.filter(
+    (p) => p.userId !== currentUserId
+  );
+
+  const readByCount = otherParticipants.filter((p) => {
+    if (!p.lastReadMessageId) return false;
+    return p.lastReadMessageId === message.id || p.lastReadMessageId > message.id;
+  }).length;
+
+  if (readByCount > 0) {
+    return { status: "read", readByCount };
+  }
+
+  return { status: "sent", readByCount: 0 };
 }
 
 export function ChatArea({ conversationId }: ChatAreaProps) {
@@ -61,6 +100,13 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
   const hasMore = conversationId
     ? (hasMoreMessages[conversationId] ?? false)
     : false;
+
+  // Read receipts: mark messages as read when viewing conversation
+  useReadReceipts({
+    conversationId,
+    messages: conversationMessages,
+    enabled: !!conversationId,
+  });
 
   useEffect(() => {
     if (conversationId) {
@@ -114,32 +160,51 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
       ? conversation.participants.length
       : undefined;
 
+  const otherUserKeycloakId = conversation
+    ? getOtherParticipantKeycloakId(conversation, currentUserId)
+    : undefined;
+
   return (
     <div className="flex flex-1 flex-col">
       {/* Chat header */}
       <div className="flex h-14 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">
-              {conversation?.type === ConversationType.Group ? (
-                <Users className="h-3.5 w-3.5" />
-              ) : (
-                displayName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2)
-              )}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="text-xs">
+                {conversation?.type === ConversationType.Group ? (
+                  <Users className="h-3.5 w-3.5" />
+                ) : (
+                  displayName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)
+                )}
+              </AvatarFallback>
+            </Avatar>
+            {conversation?.type === ConversationType.Direct && otherUserKeycloakId && (
+              <OnlineStatusIndicator
+                userId={otherUserKeycloakId}
+                size="sm"
+                className="absolute -bottom-0.5 -right-0.5"
+              />
+            )}
+          </div>
           <div>
             <h3 className="text-sm font-medium">{displayName}</h3>
-            {memberCount !== undefined && (
+            {memberCount !== undefined ? (
               <p className="text-xs text-muted-foreground">
                 {memberCount} members
               </p>
-            )}
+            ) : conversation?.type === ConversationType.Direct && otherUserKeycloakId ? (
+              <OnlineStatusIndicator
+                userId={otherUserKeycloakId}
+                showLastSeen
+                size="sm"
+              />
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -212,13 +277,22 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
                 prevMessage.senderId !== message.senderId ||
                 showDate;
 
+              const isOwn = message.senderId === currentUserId;
+              const { status: readStatus, readByCount } = getReadStatus(
+                message,
+                conversation,
+                currentUserId
+              );
+
               return (
                 <div key={message.id}>
                   {showDate && <DateSeparator date={message.createdAt} />}
                   <MessageBubble
                     message={message}
-                    isOwn={message.senderId === currentUserId}
+                    isOwn={isOwn}
                     showSender={showSender}
+                    readStatus={isOwn ? readStatus : undefined}
+                    readByCount={readByCount}
                   />
                 </div>
               );
