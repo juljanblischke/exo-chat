@@ -12,8 +12,9 @@ import {
   type ConnectionState,
 } from "@/lib/signalr/client";
 import { useChatStore } from "@/stores/chat-store";
+import { useCallStore } from "@/stores/call-store";
 import { useAuth } from "@/hooks/use-auth";
-import type { Message, User } from "@/types";
+import type { Message, User, IncomingCallData } from "@/types";
 
 export function useSignalR() {
   const { isAuthenticated } = useAuth();
@@ -71,6 +72,22 @@ export function useSignalR() {
       fetchConversations();
     });
 
+    conn.on("IncomingCall", (data: IncomingCallData) => {
+      useCallStore.getState().setIncomingCall(data);
+    });
+
+    conn.on("CallAccepted", (data: { conversationId: string; userId: string; displayName: string }) => {
+      useCallStore.getState().onCallAccepted(data.conversationId);
+    });
+
+    conn.on("CallRejected", (data: { conversationId: string; userId: string }) => {
+      useCallStore.getState().onCallRejected(data.conversationId);
+    });
+
+    conn.on("CallEnded", (data: { conversationId: string; endedBy: string }) => {
+      useCallStore.getState().onCallEnded(data.conversationId);
+    });
+
     conn.onreconnecting(() => setConnectionState("reconnecting"));
     conn.onreconnected(() => {
       setConnectionState("connected");
@@ -91,6 +108,10 @@ export function useSignalR() {
       conn.off("UserTyping");
       conn.off("UserStoppedTyping");
       conn.off("UserOnlineStatusChanged");
+      conn.off("IncomingCall");
+      conn.off("CallAccepted");
+      conn.off("CallRejected");
+      conn.off("CallEnded");
       stopConnection();
     };
   }, [

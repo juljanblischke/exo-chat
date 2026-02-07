@@ -99,3 +99,26 @@ export interface PagedResult<T> {
   hasPreviousPage: boolean;
   hasNextPage: boolean;
 }
+
+export enum CallStatus {
+  Idle = "idle",
+  Initiating = "initiating",
+  Ringing = "ringing",
+  Connecting = "connecting",
+  Connected = "connected",
+  Ended = "ended",
+}
+
+export interface IncomingCallData {
+  conversationId: string;
+  callerId: string;
+  callerDisplayName: string;
+  isVideo: boolean;
+  roomName: string;
+}
+
+export interface CallTokenData {
+  token: string;
+  roomName: string;
+  liveKitUrl: string;
+}

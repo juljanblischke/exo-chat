@@ -153,6 +153,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:${API_PORT:-5000}/api/v1"
       NEXT_PUBLIC_HUB_URL: "http://localhost:${API_PORT:-5000}/hubs/chat"
+      NEXT_PUBLIC_LIVEKIT_URL: "ws://localhost:7880"
     ports:
       - "3000:3000"
     depends_on:
