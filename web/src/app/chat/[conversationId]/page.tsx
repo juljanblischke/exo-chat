@@ -1,11 +1,13 @@
+"use client";
+
+import { use } from "react";
 import { ChatArea } from "@/components/layout/chat-area";
 
-export default async function ConversationPage({
+export default function ConversationPage({
   params,
 }: {
   params: Promise<{ conversationId: string }>;
 }) {
-  const { conversationId } = await params;
-  // TODO: Load conversation data in Phase 3
-  return <ChatArea />;
+  const { conversationId } = use(params);
+  return <ChatArea conversationId={conversationId} />;
 }
