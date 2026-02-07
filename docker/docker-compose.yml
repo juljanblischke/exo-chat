@@ -151,6 +151,8 @@ services:
       dockerfile: docker/Dockerfile.web
     container_name: exochat-web
     restart: unless-stopped
+    extra_hosts:
+      - "localhost:host-gateway"
     environment:
       NEXT_PUBLIC_API_URL: "http://localhost:${API_PORT:-5000}/api/v1"
       NEXT_PUBLIC_HUB_URL: "http://localhost:${API_PORT:-5000}/hubs/chat"
@@ -161,7 +163,6 @@ services:
       AUTH_KEYCLOAK_ID: "exochat-web"
       AUTH_KEYCLOAK_SECRET: "exochat-web-dev-secret"
       AUTH_KEYCLOAK_ISSUER: "http://localhost:8080/realms/exochat"
-      AUTH_KEYCLOAK_INTERNAL_ISSUER: "http://keycloak:8080/realms/exochat"
       NEXT_PUBLIC_KEYCLOAK_URL: "http://localhost:8080"
     ports:
       - "3000:3000"

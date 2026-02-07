@@ -19,13 +19,8 @@ declare module "next-auth/jwt" {
   }
 }
 
-// Internal URL for server-to-server calls (inside Docker: http://keycloak:8080/realms/exochat)
-// Falls back to the public issuer URL for local dev (where localhost works fine)
-const keycloakInternalIssuer =
-  process.env.AUTH_KEYCLOAK_INTERNAL_ISSUER ?? process.env.AUTH_KEYCLOAK_ISSUER;
-
 async function refreshAccessToken(token: JWT): Promise<JWT> {
-  const url = `${keycloakInternalIssuer}/protocol/openid-connect/token`;
+  const url = `${process.env.AUTH_KEYCLOAK_ISSUER}/protocol/openid-connect/token`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -57,13 +52,7 @@ export const authConfig: NextAuthConfig = {
     Keycloak({
       clientId: process.env.AUTH_KEYCLOAK_ID,
       clientSecret: process.env.AUTH_KEYCLOAK_SECRET,
-      // Public issuer URL — used for browser redirects (authorization endpoint)
       issuer: process.env.AUTH_KEYCLOAK_ISSUER,
-      // Internal URL for OIDC discovery (server-side, inside Docker)
-      wellKnown: `${keycloakInternalIssuer}/.well-known/openid-configuration`,
-      // Override server-side endpoints to use internal Docker URL
-      token: `${keycloakInternalIssuer}/protocol/openid-connect/token`,
-      userinfo: `${keycloakInternalIssuer}/protocol/openid-connect/userinfo`,
       checks: ["state"],
     }),
   ],
