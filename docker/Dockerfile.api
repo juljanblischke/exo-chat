@@ -1,0 +1,37 @@
+# ── Build stage ────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy solution and project files for layer caching
+COPY ExoChat.sln .
+COPY src/ExoChat.Domain/ExoChat.Domain.csproj src/ExoChat.Domain/
+COPY src/ExoChat.Application/ExoChat.Application.csproj src/ExoChat.Application/
+COPY src/ExoChat.Infrastructure/ExoChat.Infrastructure.csproj src/ExoChat.Infrastructure/
+COPY src/ExoChat.Api/ExoChat.Api.csproj src/ExoChat.Api/
+COPY src/ExoChat.Shared/ExoChat.Shared.csproj src/ExoChat.Shared/
+COPY tests/ExoChat.UnitTests/ExoChat.UnitTests.csproj tests/ExoChat.UnitTests/
+COPY tests/ExoChat.IntegrationTests/ExoChat.IntegrationTests.csproj tests/ExoChat.IntegrationTests/
+
+RUN dotnet restore ExoChat.sln
+
+# Copy everything and build
+COPY . .
+RUN dotnet publish src/ExoChat.Api/ExoChat.Api.csproj -c Release -o /app/publish --no-restore
+
+# ── Runtime stage ──────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -S exochat && adduser -S exochat -G exochat
+USER exochat
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:5000
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1
+
+ENTRYPOINT ["dotnet", "ExoChat.Api.dll"]
