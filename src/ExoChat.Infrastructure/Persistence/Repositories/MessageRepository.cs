@@ -1,12 +1,8 @@
+using ExoChat.Application.Common.Interfaces;
 using ExoChat.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExoChat.Infrastructure.Persistence.Repositories;
-
-public interface IMessageRepository : Application.Common.Interfaces.IRepository<Message>
-{
-    Task<IReadOnlyList<Message>> GetConversationMessagesAsync(Guid conversationId, int page, int pageSize, CancellationToken cancellationToken = default);
-}
 
 public class MessageRepository(ExoChatDbContext context) : Repository<Message>(context), IMessageRepository
 {
