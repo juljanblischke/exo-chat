@@ -1,9 +1,14 @@
+using System.Security.Claims;
 using Asp.Versioning;
 using ExoChat.Api.Middleware;
 using ExoChat.Application;
+using ExoChat.Application.Common.Interfaces;
 using ExoChat.Infrastructure;
 using ExoChat.Infrastructure.Persistence;
+using ExoChat.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +17,79 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.Authority = builder.Configuration["Keycloak:Authority"];
+    options.Audience = builder.Configuration["Keycloak:Audience"];
+    options.RequireHttpsMetadata = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        NameClaimType = ClaimTypes.Name,
+        RoleClaimType = ClaimTypes.Role
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            // Map Keycloak realm_access.roles to standard role claims
+            var claimsIdentity = context.Principal?.Identity as ClaimsIdentity;
+            if (claimsIdentity is null) return Task.CompletedTask;
+
+            // Map 'sub' to NameIdentifier if not already present
+            var sub = claimsIdentity.FindFirst("sub");
+            if (sub is not null && claimsIdentity.FindFirst(ClaimTypes.NameIdentifier) is null)
+            {
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, sub.Value));
+            }
+
+            // Map realm_access.roles from the JWT payload
+            var realmAccess = context.Principal?.FindFirst("realm_access");
+            if (realmAccess is not null)
+            {
+                try
+                {
+                    var realmAccessJson = System.Text.Json.JsonDocument.Parse(realmAccess.Value);
+                    if (realmAccessJson.RootElement.TryGetProperty("roles", out var roles))
+                    {
+                        foreach (var role in roles.EnumerateArray())
+                        {
+                            var roleValue = role.GetString();
+                            if (!string.IsNullOrEmpty(roleValue))
+                            {
+                                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, roleValue));
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore malformed realm_access claim
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// Current user service
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // API Versioning
 builder.Services.AddApiVersioning(options =>
@@ -95,6 +173,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<UserSyncMiddleware>();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
