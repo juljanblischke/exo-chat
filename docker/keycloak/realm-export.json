@@ -125,7 +125,6 @@
       ],
       "adminUrl": "http://localhost:3000",
       "attributes": {
-        "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:3000/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "oidc.ciba.grant.enabled": "false",

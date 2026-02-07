@@ -64,7 +64,7 @@ export const authConfig: NextAuthConfig = {
       // Override server-side endpoints to use internal Docker URL
       token: `${keycloakInternalIssuer}/protocol/openid-connect/token`,
       userinfo: `${keycloakInternalIssuer}/protocol/openid-connect/userinfo`,
-      checks: ["pkce", "state"],
+      checks: ["state"],
     }),
   ],
   pages: {
