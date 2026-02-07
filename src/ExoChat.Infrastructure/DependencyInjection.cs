@@ -1,6 +1,8 @@
 using ExoChat.Application.Common.Interfaces;
+using ExoChat.Infrastructure.Options;
 using ExoChat.Infrastructure.Persistence;
 using ExoChat.Infrastructure.Persistence.Repositories;
+using ExoChat.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,13 @@ public static class DependencyInjection
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
         services.AddScoped<IParticipantRepository, ParticipantRepository>();
+
+        // MinIO file storage
+        services.Configure<MinioOptions>(configuration.GetSection(MinioOptions.SectionName));
+        services.AddSingleton<MinioFileStorageService>();
+        services.AddSingleton<IFileStorageService>(sp => sp.GetRequiredService<MinioFileStorageService>());
+        services.AddSingleton<IThumbnailService, ImageSharpThumbnailService>();
+        services.AddHostedService<MinioBucketInitializer>();
 
         return services;
     }
