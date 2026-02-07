@@ -37,7 +37,6 @@ public class ConversationsController(IMediator mediator) : ApiControllerBase
         var result = await mediator.Send(new GetConversationByIdQuery(id), cancellationToken);
         return Ok(ApiResponse<object>.Ok(result));
     }
-}
 
     [HttpPost("{id:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id, [FromBody] MarkAsReadRequest? request, CancellationToken cancellationToken)
