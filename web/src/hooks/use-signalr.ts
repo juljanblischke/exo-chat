@@ -9,12 +9,28 @@ import {
   leaveConversation,
   sendTyping,
   sendStopTyping,
+  sendHeartbeat,
   type ConnectionState,
 } from "@/lib/signalr/client";
 import { useChatStore } from "@/stores/chat-store";
 import { useCallStore } from "@/stores/call-store";
+import { usePresenceStore } from "@/stores/presence-store";
 import { useAuth } from "@/hooks/use-auth";
+import { OnlineStatus } from "@/types";
 import type { Message, User, IncomingCallData } from "@/types";
+
+interface MessagesReadData {
+  userId: string;
+  userEntityId: string;
+  conversationId: string;
+  messageId: string;
+}
+
+interface UserStatusChangedData {
+  userId: string;
+  status: OnlineStatus;
+  lastSeenAt?: string;
+}
 
 export function useSignalR() {
   const { isAuthenticated } = useAuth();
@@ -32,6 +48,7 @@ export function useSignalR() {
 
   const joinedConversationRef = useRef<string | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -51,24 +68,50 @@ export function useSignalR() {
       removeMessage(data.conversationId, data.messageId);
     });
 
-    conn.on("UserTyping", (data: { conversationId: string; user: User }) => {
+    conn.on("UserTyping", (data: { conversationId: string; userId: string; displayName: string }) => {
       const store = useChatStore.getState();
       const current = store.typingUsers[data.conversationId] ?? [];
-      if (!current.some((u) => u.id === data.user.id)) {
-        setTypingUsers(data.conversationId, [...current, data.user]);
+      const typingUser: User = {
+        id: data.userId,
+        keycloakId: data.userId,
+        displayName: data.displayName,
+        avatarUrl: null,
+        lastSeenAt: null,
+        onlineStatus: OnlineStatus.Online,
+      };
+      if (!current.some((u) => u.id === data.userId)) {
+        setTypingUsers(data.conversationId, [...current, typingUser]);
       }
     });
 
-    conn.on("UserStoppedTyping", (data: { conversationId: string; user: User }) => {
+    conn.on("UserStoppedTyping", (data: { conversationId: string; userId: string }) => {
       const store = useChatStore.getState();
       const current = store.typingUsers[data.conversationId] ?? [];
       setTypingUsers(
         data.conversationId,
-        current.filter((u) => u.id !== data.user.id)
+        current.filter((u) => u.id !== data.userId)
       );
     });
 
-    conn.on("UserOnlineStatusChanged", () => {
+    conn.on("MessagesRead", (data: MessagesReadData) => {
+      const store = useChatStore.getState();
+      const conversations = store.conversations.map((c) => {
+        if (c.id !== data.conversationId) return c;
+        return {
+          ...c,
+          participants: c.participants.map((p) =>
+            p.userId === data.userEntityId
+              ? { ...p, lastReadMessageId: data.messageId }
+              : p
+          ),
+        };
+      });
+      store.setConversations(conversations);
+    });
+
+    conn.on("UserStatusChanged", (data: UserStatusChangedData) => {
+      const presenceStore = usePresenceStore.getState();
+      presenceStore.setUserStatus(data.userId, data.status, data.lastSeenAt);
       fetchConversations();
     });
 
@@ -98,7 +141,12 @@ export function useSignalR() {
     conn.onclose(() => setConnectionState("disconnected"));
 
     startConnection()
-      .then(() => setConnectionState("connected"))
+      .then(() => {
+        setConnectionState("connected");
+        heartbeatIntervalRef.current = setInterval(() => {
+          sendHeartbeat().catch(() => {});
+        }, 30000);
+      })
       .catch(() => setConnectionState("disconnected"));
 
     return () => {
@@ -107,11 +155,16 @@ export function useSignalR() {
       conn.off("MessageDeleted");
       conn.off("UserTyping");
       conn.off("UserStoppedTyping");
-      conn.off("UserOnlineStatusChanged");
+      conn.off("MessagesRead");
+      conn.off("UserStatusChanged");
       conn.off("IncomingCall");
       conn.off("CallAccepted");
       conn.off("CallRejected");
       conn.off("CallEnded");
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       stopConnection();
     };
   }, [

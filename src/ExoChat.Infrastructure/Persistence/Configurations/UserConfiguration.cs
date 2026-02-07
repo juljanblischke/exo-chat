@@ -13,5 +13,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.KeycloakId).HasMaxLength(255).IsRequired();
         builder.Property(u => u.DisplayName).HasMaxLength(100).IsRequired();
         builder.Property(u => u.AvatarUrl).HasMaxLength(500);
+        builder.Property(u => u.StatusMessage).HasMaxLength(200);
     }
 }

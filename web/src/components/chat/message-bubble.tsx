@@ -11,14 +11,17 @@ import { MessageType } from "@/types";
 import type { Message } from "@/types";
 import { formatMessageTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ReadReceiptIcon, type ReadStatus } from "@/components/chat/read-receipt-icon";
 
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   showSender: boolean;
+  readStatus?: ReadStatus;
+  readByCount?: number;
 }
 
-export function MessageBubble({ message, isOwn, showSender }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, showSender, readStatus, readByCount }: MessageBubbleProps) {
   if (message.messageType === MessageType.System) {
     return (
       <div className="flex justify-center py-1">
@@ -90,6 +93,17 @@ export function MessageBubble({ message, isOwn, showSender }: MessageBubbleProps
                 >
                   <span>{formatMessageTime(message.createdAt)}</span>
                   {message.editedAt && <span>(edited)</span>}
+                  {isOwn && readStatus && (
+                    <ReadReceiptIcon
+                      status={readStatus}
+                      readByCount={readByCount}
+                      className={cn(
+                        isOwn
+                          ? "text-primary-foreground/70"
+                          : "text-muted-foreground"
+                      )}
+                    />
+                  )}
                 </div>
               </div>
             </TooltipTrigger>

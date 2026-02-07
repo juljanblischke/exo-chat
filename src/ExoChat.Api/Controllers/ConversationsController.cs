@@ -1,5 +1,7 @@
 using ExoChat.Application.Conversations.Commands;
 using ExoChat.Application.Conversations.Queries;
+using ExoChat.Application.Messages.Commands;
+using ExoChat.Application.Messages.Queries;
 using ExoChat.Shared.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -37,5 +39,22 @@ public class ConversationsController(IMediator mediator) : ApiControllerBase
     }
 }
 
+    [HttpPost("{id:guid}/read")]
+    public async Task<IActionResult> MarkAsRead(Guid id, [FromBody] MarkAsReadRequest? request, CancellationToken cancellationToken)
+    {
+        var previousUnreadCount = await mediator.Send(
+            new MarkMessagesAsReadCommand(id, request?.UpToMessageId), cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { MarkedAsRead = true, PreviousUnreadCount = previousUnreadCount }));
+    }
+
+    [HttpGet("{id:guid}/unread-count")]
+    public async Task<IActionResult> GetUnreadCount(Guid id, CancellationToken cancellationToken)
+    {
+        var count = await mediator.Send(new GetUnreadCountQuery(id), cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { UnreadCount = count }));
+    }
+}
+
 public record CreateDirectConversationRequest(Guid OtherUserId);
 public record CreateGroupConversationRequest(string Name, string? Description, List<Guid> MemberUserIds);
+public record MarkAsReadRequest(Guid? UpToMessageId);

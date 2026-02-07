@@ -13,6 +13,7 @@ namespace ExoChat.Api.Hubs;
 public class ChatHub(
     IMediator mediator,
     IServiceScopeFactory scopeFactory,
+    IPresenceService presenceService,
     ILogger<ChatHub> logger) : Hub
 {
     public async Task JoinConversation(Guid conversationId)
@@ -40,9 +41,13 @@ public class ChatHub(
     public async Task StartTyping(Guid conversationId)
     {
         var userId = Context.UserIdentifier;
+        if (userId is null) return;
+
         var displayName = Context.User?.FindFirstValue("preferred_username")
             ?? Context.User?.FindFirstValue(ClaimTypes.Name)
             ?? "Unknown";
+
+        await presenceService.SetTypingAsync(userId, displayName, conversationId);
 
         await Clients.OthersInGroup(conversationId.ToString())
             .SendAsync("UserTyping", new { UserId = userId, DisplayName = displayName, ConversationId = conversationId });
@@ -51,6 +56,9 @@ public class ChatHub(
     public async Task StopTyping(Guid conversationId)
     {
         var userId = Context.UserIdentifier;
+        if (userId is null) return;
+
+        await presenceService.ClearTypingAsync(userId, conversationId);
 
         await Clients.OthersInGroup(conversationId.ToString())
             .SendAsync("UserStoppedTyping", new { UserId = userId, ConversationId = conversationId });
@@ -59,14 +67,12 @@ public class ChatHub(
     public async Task MarkAsRead(Guid conversationId, Guid messageId)
     {
         var userId = Context.UserIdentifier;
+        if (userId is null) return;
 
-        // Update the participant's LastReadMessageId
         using var scope = scopeFactory.CreateScope();
         var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
         var participantRepository = scope.ServiceProvider.GetRequiredService<IParticipantRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-
-        if (userId is null) return;
 
         var user = await userRepository.GetByKeycloakIdAsync(userId);
         if (user is null) return;
@@ -80,7 +86,21 @@ public class ChatHub(
         await unitOfWork.SaveChangesAsync();
 
         await Clients.OthersInGroup(conversationId.ToString())
-            .SendAsync("MessageRead", new { UserId = userId, ConversationId = conversationId, MessageId = messageId });
+            .SendAsync("MessagesRead", new
+            {
+                UserId = userId,
+                UserEntityId = user.Id,
+                ConversationId = conversationId,
+                MessageId = messageId
+            });
+    }
+
+    public async Task Heartbeat()
+    {
+        var userId = Context.UserIdentifier;
+        if (userId is null) return;
+
+        await presenceService.RefreshHeartbeatAsync(userId);
     }
 
     public async Task InitiateCall(Guid conversationId, bool isVideo)
@@ -174,6 +194,8 @@ public class ChatHub(
         var userId = Context.UserIdentifier;
         if (userId is not null)
         {
+            await presenceService.SetUserOnlineAsync(userId, Context.ConnectionId);
+
             using var scope = scopeFactory.CreateScope();
             var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -200,20 +222,26 @@ public class ChatHub(
         var userId = Context.UserIdentifier;
         if (userId is not null)
         {
-            using var scope = scopeFactory.CreateScope();
-            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            await presenceService.SetUserOfflineAsync(userId, Context.ConnectionId);
 
-            var user = await userRepository.GetByKeycloakIdAsync(userId);
-            if (user is not null)
+            var stillOnline = await presenceService.IsUserOnlineAsync(userId);
+            if (!stillOnline)
             {
-                user.OnlineStatus = OnlineStatus.Offline;
-                user.LastSeenAt = DateTime.UtcNow;
-                userRepository.Update(user);
-                await unitOfWork.SaveChangesAsync();
+                using var scope = scopeFactory.CreateScope();
+                var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-                await Clients.All.SendAsync("UserStatusChanged",
-                    new { UserId = userId, Status = OnlineStatus.Offline });
+                var user = await userRepository.GetByKeycloakIdAsync(userId);
+                if (user is not null)
+                {
+                    user.OnlineStatus = OnlineStatus.Offline;
+                    user.LastSeenAt = DateTime.UtcNow;
+                    userRepository.Update(user);
+                    await unitOfWork.SaveChangesAsync();
+
+                    await Clients.All.SendAsync("UserStatusChanged",
+                        new { UserId = userId, Status = OnlineStatus.Offline, LastSeenAt = user.LastSeenAt });
+                }
             }
         }
 
