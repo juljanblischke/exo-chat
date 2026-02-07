@@ -34,6 +34,26 @@ public static class DependencyInjection
         services.Configure<LiveKitOptions>(configuration.GetSection(LiveKitOptions.SectionName));
         services.AddSingleton<ICallService, LiveKitCallService>();
 
+        // Presence service
+        services.AddSingleton<IPresenceService, RedisPresenceService>();
+
+        // Notification & settings repositories
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<INotificationPreferenceRepository, NotificationPreferenceRepository>();
+        services.AddScoped<IUserPrivacySettingsRepository, UserPrivacySettingsRepository>();
+        services.AddScoped<IBlockedUserRepository, BlockedUserRepository>();
+
+        // Web Push notification service
+        services.Configure<VapidOptions>(configuration.GetSection("Vapid"));
+        services.AddScoped<INotificationService, WebPushNotificationService>();
+
+        // GDPR services
+        services.AddSingleton<IAuditLogService, AuditLogService>();
+        services.AddScoped<IDataExportService, DataExportService>();
+        services.AddScoped<IAccountDeletionService, AccountDeletionService>();
+        services.AddHostedService<RetentionWorker>();
+
         return services;
     }
 }
