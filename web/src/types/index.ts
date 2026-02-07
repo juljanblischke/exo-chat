@@ -40,6 +40,7 @@ export interface Conversation {
   group: Group | null;
   participants: Participant[];
   lastMessage: Message | null;
+  unreadCount?: number;
 }
 
 export interface Message {
@@ -122,3 +123,77 @@ export interface CallTokenData {
   roomName: string;
   liveKitUrl: string;
 }
+
+// Search
+export interface SearchResult {
+  messageId: string;
+  contentSnippet: string;
+  conversationId: string;
+  conversationName: string | null;
+  senderName: string;
+  senderAvatarUrl: string | null;
+  sentAt: string;
+}
+
+// Notifications
+export enum NotificationType {
+  NewMessage = 0,
+  MissedCall = 1,
+  GroupInvite = 2,
+  MentionInGroup = 3,
+  SystemAlert = 4,
+}
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data: string | null;
+  isRead: boolean;
+  conversationId: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPreference {
+  id: string;
+  conversationId: string | null;
+  conversationName: string | null;
+  enablePush: boolean;
+  enableSound: boolean;
+  enableDesktop: boolean;
+  mutedUntil: string | null;
+}
+
+// User Settings
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  statusMessage: string | null;
+  email: string | null;
+}
+
+export enum StatusVisibility {
+  Everyone = 0,
+  Contacts = 1,
+  Nobody = 2,
+}
+
+export interface UserPrivacySettings {
+  readReceiptsEnabled: boolean;
+  onlineStatusVisibility: StatusVisibility;
+}
+
+export interface BlockedUser {
+  id: string;
+  blockedUserId: string;
+  blockedUserDisplayName: string;
+  blockedUserAvatarUrl: string | null;
+  blockedAt: string;
+}
+
+// Appearance
+export type ThemeMode = "light" | "dark" | "system";
+export type FontSize = "small" | "medium" | "large";
+export type MessageDensity = "compact" | "comfortable";

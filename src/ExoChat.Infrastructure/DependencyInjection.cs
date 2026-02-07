@@ -34,6 +34,17 @@ public static class DependencyInjection
         services.Configure<LiveKitOptions>(configuration.GetSection(LiveKitOptions.SectionName));
         services.AddSingleton<ICallService, LiveKitCallService>();
 
+        // Notification & settings repositories
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<INotificationPreferenceRepository, NotificationPreferenceRepository>();
+        services.AddScoped<IUserPrivacySettingsRepository, UserPrivacySettingsRepository>();
+        services.AddScoped<IBlockedUserRepository, BlockedUserRepository>();
+
+        // Web Push notification service
+        services.Configure<VapidOptions>(configuration.GetSection("Vapid"));
+        services.AddScoped<INotificationService, WebPushNotificationService>();
+
         return services;
     }
 }
