@@ -83,6 +83,72 @@ public class ChatHub(
             .SendAsync("MessageRead", new { UserId = userId, ConversationId = conversationId, MessageId = messageId });
     }
 
+    public async Task InitiateCall(Guid conversationId, bool isVideo)
+    {
+        var userId = Context.UserIdentifier;
+        var displayName = Context.User?.FindFirstValue("preferred_username")
+            ?? Context.User?.FindFirstValue(ClaimTypes.Name)
+            ?? "Unknown";
+
+        await Clients.OthersInGroup(conversationId.ToString())
+            .SendAsync("IncomingCall", new
+            {
+                ConversationId = conversationId,
+                CallerId = userId,
+                CallerName = displayName,
+                IsVideo = isVideo,
+                RoomName = $"call-{conversationId}"
+            });
+
+        logger.LogInformation("User {UserId} initiated call in conversation {ConversationId}", userId, conversationId);
+    }
+
+    public async Task AcceptCall(Guid conversationId)
+    {
+        var userId = Context.UserIdentifier;
+        var displayName = Context.User?.FindFirstValue("preferred_username")
+            ?? Context.User?.FindFirstValue(ClaimTypes.Name)
+            ?? "Unknown";
+
+        await Clients.OthersInGroup(conversationId.ToString())
+            .SendAsync("CallAccepted", new
+            {
+                ConversationId = conversationId,
+                UserId = userId,
+                DisplayName = displayName
+            });
+
+        logger.LogInformation("User {UserId} accepted call in conversation {ConversationId}", userId, conversationId);
+    }
+
+    public async Task RejectCall(Guid conversationId)
+    {
+        var userId = Context.UserIdentifier;
+
+        await Clients.OthersInGroup(conversationId.ToString())
+            .SendAsync("CallRejected", new
+            {
+                ConversationId = conversationId,
+                UserId = userId
+            });
+
+        logger.LogInformation("User {UserId} rejected call in conversation {ConversationId}", userId, conversationId);
+    }
+
+    public async Task EndCall(Guid conversationId)
+    {
+        var userId = Context.UserIdentifier;
+
+        await Clients.Group(conversationId.ToString())
+            .SendAsync("CallEnded", new
+            {
+                ConversationId = conversationId,
+                EndedBy = userId
+            });
+
+        logger.LogInformation("User {UserId} ended call in conversation {ConversationId}", userId, conversationId);
+    }
+
     public async Task UpdateOnlineStatus(OnlineStatus status)
     {
         var userId = Context.UserIdentifier;

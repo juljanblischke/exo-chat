@@ -30,6 +30,10 @@ public static class DependencyInjection
         services.AddSingleton<IThumbnailService, ImageSharpThumbnailService>();
         services.AddHostedService<MinioBucketInitializer>();
 
+        // LiveKit call service
+        services.Configure<LiveKitOptions>(configuration.GetSection(LiveKitOptions.SectionName));
+        services.AddSingleton<ICallService, LiveKitCallService>();
+
         return services;
     }
 }
