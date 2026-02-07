@@ -91,3 +91,40 @@ export async function markAsRead(
     await conn.invoke("MarkAsRead", conversationId, messageId);
   }
 }
+
+export async function initiateCallSignalR(
+  conversationId: string,
+  isVideo: boolean
+): Promise<void> {
+  const conn = getConnection();
+  if (conn.state === signalR.HubConnectionState.Connected) {
+    await conn.invoke("InitiateCall", conversationId, isVideo);
+  }
+}
+
+export async function acceptCallSignalR(
+  conversationId: string
+): Promise<void> {
+  const conn = getConnection();
+  if (conn.state === signalR.HubConnectionState.Connected) {
+    await conn.invoke("AcceptCall", conversationId);
+  }
+}
+
+export async function rejectCallSignalR(
+  conversationId: string
+): Promise<void> {
+  const conn = getConnection();
+  if (conn.state === signalR.HubConnectionState.Connected) {
+    await conn.invoke("RejectCall", conversationId);
+  }
+}
+
+export async function endCallSignalR(
+  conversationId: string
+): Promise<void> {
+  const conn = getConnection();
+  if (conn.state === signalR.HubConnectionState.Connected) {
+    await conn.invoke("EndCall", conversationId);
+  }
+}

@@ -10,6 +10,7 @@ import { MessageInput } from "@/components/chat/message-input";
 import { DateSeparator } from "@/components/chat/date-separator";
 import { TypingIndicator } from "@/components/chat/typing-indicator";
 import { GroupSettingsDialog } from "@/components/chat/group-settings-dialog";
+import { CallButton } from "@/components/call/call-button";
 import { isSameDay } from "@/lib/format";
 import { ConversationType } from "@/types";
 import type { Conversation } from "@/types";
@@ -141,17 +142,20 @@ export function ChatArea({ conversationId }: ChatAreaProps) {
             )}
           </div>
         </div>
-        {conversation?.type === ConversationType.Group && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setGroupSettingsOpen(true)}
-          >
-            <Settings className="h-4 w-4" />
-            <span className="sr-only">Group settings</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          <CallButton conversationId={conversationId} />
+          {conversation?.type === ConversationType.Group && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setGroupSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" />
+              <span className="sr-only">Group settings</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Messages area */}
