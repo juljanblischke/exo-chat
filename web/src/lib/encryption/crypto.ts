@@ -53,7 +53,7 @@ export async function deriveKey(
 ): Promise<Uint8Array> {
   await ensureSodium();
   const infoBytes = new TextEncoder().encode(info);
-  return sodium.crypto_generichash(32, new Uint8Array([...sharedSecret, ...infoBytes]));
+  return sodium.crypto_generichash(32, new Uint8Array([...sharedSecret, ...infoBytes]), null);
 }
 
 export async function generateSharedSecret(

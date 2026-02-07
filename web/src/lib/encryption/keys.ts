@@ -46,7 +46,7 @@ export async function generateSignedPreKey(
   const signature = sodium.crypto_sign_detached(
     keyPair.publicKey,
     sodium.crypto_sign_seed_keypair(
-      sodium.crypto_generichash(32, identityPrivateKey)
+      sodium.crypto_generichash(32, identityPrivateKey, null)
     ).privateKey
   );
   return {

@@ -117,7 +117,7 @@ function verifySignedPreKey(
   try {
     // Derive signing key from identity key for verification
     const signingKeyPair = sodium.crypto_sign_seed_keypair(
-      sodium.crypto_generichash(32, identityKey)
+      sodium.crypto_generichash(32, identityKey, null)
     );
     return sodium.crypto_sign_verify_detached(signature, publicKey, signingKeyPair.publicKey);
   } catch {
