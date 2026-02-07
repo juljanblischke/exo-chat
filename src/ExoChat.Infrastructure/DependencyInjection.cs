@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
         services.AddHostedService<RetentionWorker>();
 
+
         return services;
     }
 }

@@ -193,6 +193,7 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<UserSyncMiddleware>();
+app.UseMiddleware<AuditLoggingMiddleware>();
 app.MapControllers();
 app.MapHub<ExoChat.Api.Hubs.ChatHub>("/hubs/chat");
 app.MapHealthChecks("/health");
