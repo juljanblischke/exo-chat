@@ -26,8 +26,9 @@ public class MessageRepository(ExoChatDbContext context) : Repository<Message>(c
         var query = DbSet
             .Include(m => m.Sender)
             .Include(m => m.Conversation)
+                .ThenInclude(c => c.Group)
             .Where(m => conversationIds.Contains(m.ConversationId))
-            .Where(m => m.Content != null && EF.Functions.ILike(m.Content, $"%{searchTerm}%"));
+            .Where(m => m.Content != null && EF.Functions.ILike(m.Content, "%" + searchTerm + "%"));
 
         if (conversationId.HasValue)
             query = query.Where(m => m.ConversationId == conversationId.Value);

@@ -1,4 +1,3 @@
-using ExoChat.Application.Conversations.Queries;
 using ExoChat.Application.Users.Commands;
 using ExoChat.Application.Users.Queries;
 using ExoChat.Domain.Enums;
@@ -10,13 +9,6 @@ namespace ExoChat.Api.Controllers;
 
 public class UsersController(IMediator mediator) : ApiControllerBase
 {
-    [HttpGet("{id:guid}/status")]
-    public async Task<IActionResult> GetStatus(Guid id, CancellationToken cancellationToken)
-    {
-        var result = await mediator.Send(new GetUserStatusQuery(id), cancellationToken);
-        return Ok(ApiResponse<object>.Ok(result));
-    }
-
     [HttpGet("me/profile")]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {

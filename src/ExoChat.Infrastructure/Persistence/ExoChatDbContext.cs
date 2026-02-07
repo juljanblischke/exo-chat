@@ -16,10 +16,6 @@ public class ExoChatDbContext(DbContextOptions<ExoChatDbContext> options) : DbCo
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<UserPrivacySettings> UserPrivacySettings => Set<UserPrivacySettings>();
     public DbSet<BlockedUser> BlockedUsers => Set<BlockedUser>();
-    public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
-    public DbSet<UserConsent> UserConsents => Set<UserConsent>();
-    public DbSet<DataExportRequest> DataExportRequests => Set<DataExportRequest>();
-    public DbSet<AccountDeletionRequest> AccountDeletionRequests => Set<AccountDeletionRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
