@@ -35,17 +35,17 @@ public static class DependencyInjection
         services.Configure<LiveKitOptions>(configuration.GetSection(LiveKitOptions.SectionName));
         services.AddSingleton<ICallService, LiveKitCallService>();
 
-        // Presence service (Redis-backed)
+        // Presence service (Redis-backed online status and typing)
         services.AddSingleton<IPresenceService, RedisPresenceService>();
 
-        // Notifications & Settings
+        // Notification & settings repositories
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<INotificationPreferenceRepository, NotificationPreferenceRepository>();
         services.AddScoped<IUserPrivacySettingsRepository, UserPrivacySettingsRepository>();
         services.AddScoped<IBlockedUserRepository, BlockedUserRepository>();
 
-        // Web Push
+        // Web Push notification service
         services.Configure<VapidOptions>(configuration.GetSection(VapidOptions.SectionName));
         services.AddScoped<INotificationService, WebPushNotificationService>();
 

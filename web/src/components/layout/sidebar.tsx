@@ -15,6 +15,7 @@ import type { Conversation } from "@/types";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { NewConversationDialog } from "@/components/chat/new-conversation-dialog";
+import { OnlineStatusIndicator } from "@/components/chat/online-status";
 
 function getConversationName(
   conversation: Conversation,
@@ -40,6 +41,17 @@ function getConversationInitials(
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+function getOtherUserKeycloakId(
+  conversation: Conversation,
+  currentUserId?: string
+): string | undefined {
+  if (conversation.type === ConversationType.Group) return undefined;
+  const other = conversation.participants.find(
+    (p) => p.userId !== currentUserId
+  );
+  return other?.user?.keycloakId;
 }
 
 export function Sidebar() {
@@ -130,45 +142,72 @@ export function Sidebar() {
               {searchQuery ? "No conversations found" : "No conversations yet"}
             </div>
           ) : (
-            filteredConversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={() => handleConversationClick(conversation.id)}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-accent",
-                  activeId === conversation.id && "bg-accent"
-                )}
-              >
-                <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarFallback>
-                    {conversation.type === ConversationType.Group ? (
-                      <Users className="h-4 w-4" />
-                    ) : (
-                      getConversationInitials(conversation, currentUserId)
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <span className="truncate text-sm font-medium">
-                      {getConversationName(conversation, currentUserId)}
-                    </span>
-                    {conversation.lastMessage && (
-                      <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                        {formatRelativeTime(
-                          conversation.lastMessage.createdAt
+            filteredConversations.map((conversation) => {
+              const otherKeycloakId = getOtherUserKeycloakId(conversation, currentUserId);
+              const unreadCount = conversation.unreadCount ?? 0;
+
+              return (
+                <button
+                  key={conversation.id}
+                  onClick={() => handleConversationClick(conversation.id)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-accent",
+                    activeId === conversation.id && "bg-accent"
+                  )}
+                >
+                  <div className="relative shrink-0">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback>
+                        {conversation.type === ConversationType.Group ? (
+                          <Users className="h-4 w-4" />
+                        ) : (
+                          getConversationInitials(conversation, currentUserId)
                         )}
-                      </span>
+                      </AvatarFallback>
+                    </Avatar>
+                    {conversation.type === ConversationType.Direct && otherKeycloakId && (
+                      <OnlineStatusIndicator
+                        userId={otherKeycloakId}
+                        size="sm"
+                        className="absolute -bottom-0.5 -right-0.5"
+                      />
                     )}
                   </div>
-                  {conversation.lastMessage && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {conversation.lastMessage.content}
-                    </p>
-                  )}
-                </div>
-              </button>
-            ))
+                  <div className="flex-1 overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className={cn(
+                        "truncate text-sm",
+                        unreadCount > 0 ? "font-semibold" : "font-medium"
+                      )}>
+                        {getConversationName(conversation, currentUserId)}
+                      </span>
+                      <div className="ml-2 flex shrink-0 items-center gap-1.5">
+                        {conversation.lastMessage && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatRelativeTime(
+                              conversation.lastMessage.createdAt
+                            )}
+                          </span>
+                        )}
+                        {unreadCount > 0 && (
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {conversation.lastMessage && (
+                      <p className={cn(
+                        "truncate text-xs",
+                        unreadCount > 0 ? "font-medium text-foreground" : "text-muted-foreground"
+                      )}>
+                        {conversation.lastMessage.content}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </ScrollArea>

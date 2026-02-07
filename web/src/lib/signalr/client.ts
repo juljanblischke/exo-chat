@@ -128,3 +128,10 @@ export async function endCallSignalR(
     await conn.invoke("EndCall", conversationId);
   }
 }
+
+export async function sendHeartbeat(): Promise<void> {
+  const conn = getConnection();
+  if (conn.state === signalR.HubConnectionState.Connected) {
+    await conn.invoke("Heartbeat");
+  }
+}

@@ -82,3 +82,28 @@ export async function deleteMessage(
 export async function searchUsers(query: string) {
   return apiClient.get<User[]>(`/users/search?query=${encodeURIComponent(query)}`);
 }
+
+export async function markConversationAsRead(
+  conversationId: string,
+  upToMessageId?: string
+) {
+  return apiClient.post<{ markedAsRead: boolean; previousUnreadCount: number }>(
+    `/conversations/${conversationId}/read`,
+    upToMessageId ? { upToMessageId } : {}
+  );
+}
+
+export async function getUnreadCount(conversationId: string) {
+  return apiClient.get<{ unreadCount: number }>(
+    `/conversations/${conversationId}/unread-count`
+  );
+}
+
+export interface UserStatusResponse {
+  isOnline: boolean;
+  lastSeenAt: string | null;
+}
+
+export async function getUserStatus(userId: string) {
+  return apiClient.get<UserStatusResponse>(`/users/${userId}/status`);
+}

@@ -10,8 +10,10 @@ public class User : BaseEntity
     public string? AvatarUrl { get; set; }
     public DateTime? LastSeenAt { get; set; }
     public OnlineStatus OnlineStatus { get; set; } = OnlineStatus.Offline;
+    public string? StatusMessage { get; set; }
 
     // Navigation properties
     public ICollection<Participant> Participants { get; set; } = new List<Participant>();
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
+    public UserPrivacySettings? PrivacySettings { get; set; }
 }
