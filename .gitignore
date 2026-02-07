@@ -1,0 +1,49 @@
+# ── .NET ────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+*.nupkg
+*.snupkg
+
+# ── Node / Next.js ──────────────────────────────────────
+node_modules/
+.next/
+out/
+web/.env*.local
+web/.turbo
+
+# ── IDE ─────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Environment ─────────────────────────────────────────
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+
+# ── Docker ──────────────────────────────────────────────
+docker/data/
+
+# ── OS ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Claude Code ─────────────────────────────────────────
+.claude/settings.local.json
+.claude/copy.txt
+
+# ── Misc ────────────────────────────────────────────────
+*.log
