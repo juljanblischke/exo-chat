@@ -51,6 +51,7 @@ export const authConfig: NextAuthConfig = {
     Keycloak({
       clientId: process.env.AUTH_KEYCLOAK_ID,
       issuer: process.env.AUTH_KEYCLOAK_ISSUER,
+      checks: ["pkce", "state"],
     }),
   ],
   pages: {
