@@ -1,12 +1,8 @@
+using ExoChat.Application.Common.Interfaces;
 using ExoChat.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExoChat.Infrastructure.Persistence.Repositories;
-
-public interface IConversationRepository : Application.Common.Interfaces.IRepository<Conversation>
-{
-    Task<Conversation?> GetWithParticipantsAsync(Guid id, CancellationToken cancellationToken = default);
-}
 
 public class ConversationRepository(ExoChatDbContext context) : Repository<Conversation>(context), IConversationRepository
 {

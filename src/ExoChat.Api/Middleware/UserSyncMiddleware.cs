@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using ExoChat.Application.Common.Interfaces;
 using ExoChat.Domain.Entities;
-using ExoChat.Infrastructure.Persistence.Repositories;
 
 namespace ExoChat.Api.Middleware;
 

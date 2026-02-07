@@ -42,6 +42,17 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            // Allow SignalR to use access_token from query string
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chat"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        },
         OnTokenValidated = context =>
         {
             // Map Keycloak realm_access.roles to standard role claims
@@ -149,6 +160,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+// SignalR with Redis backplane
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(redisConnectionString, options =>
+    {
+        options.Configuration.ChannelPrefix = new StackExchange.Redis.RedisChannel("ExoChat", StackExchange.Redis.RedisChannel.PatternMode.Literal);
+    });
+
 // Health checks
 builder.Services.AddHealthChecks();
 
@@ -175,6 +194,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<UserSyncMiddleware>();
 app.MapControllers();
+app.MapHub<ExoChat.Api.Hubs.ChatHub>("/hubs/chat");
 app.MapHealthChecks("/health");
 
 app.Run();
