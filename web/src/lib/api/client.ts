@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/types";
+import { getSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
 
@@ -20,9 +21,11 @@ class ApiClient {
       ...options.headers,
     };
 
-    // TODO: Add auth token from session in Phase 2
-    // const token = getAuthToken();
-    // if (token) headers["Authorization"] = `Bearer ${token}`;
+    const session = await getSession();
+    if (session?.accessToken) {
+      (headers as Record<string, string>)["Authorization"] =
+        `Bearer ${session.accessToken}`;
+    }
 
     const response = await fetch(url, {
       ...options,
